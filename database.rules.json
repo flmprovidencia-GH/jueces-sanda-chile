@@ -1,0 +1,20 @@
+{
+  "rules": {
+    "combates": {
+      ".indexOn": ["owner"],
+      ".read": "auth != null",
+      "$code": {
+        ".write": "auth != null && ((!data.exists() && newData.child('owner').val() === auth.uid) || data.child('owner').val() === auth.uid)",
+        ".validate": "newData.child('owner').val() === (data.exists() ? data.child('owner').val() : auth.uid)"
+      }
+    },
+    "jueces": {
+      ".read": "auth != null",
+      "$code": {
+        "$n": {
+          ".write": "auth != null && $n.matches(/^[1-5]$/) && root.child('combates/' + $code + '/phase').val().matches(/^(listo|combate|revision)$/)"
+        }
+      }
+    }
+  }
+}

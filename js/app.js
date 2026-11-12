@@ -1,4 +1,4 @@
-import { store, MODE } from './store.js';
+import { store, MODE, now } from './store.js';
 import {
   CATEGORIES, EVENT_TYPES, SIDES, other, judgeTaps, judgeTotals, roundResult, twelvePoint, boutStatus,
   nextRoundAllowed, warnings, admonitions, counts, offPlatform,
@@ -8,7 +8,7 @@ const $app = document.getElementById('app');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SIDE_LABEL = { rojo: 'Rojo', azul: 'Azul', empate: 'Empate' };
 const fmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
-const remaining = (t) => (!t ? 0 : t.running ? t.endsAt - Date.now() : t.remaining);
+const remaining = (t) => (!t ? 0 : t.running ? t.endsAt - now() : t.remaining);
 const uid = () => Math.random().toString(36).slice(2, 10);
 const fighter = (b, s) => `<span class="txt-${s}">${esc(b[s]?.name || SIDE_LABEL[s])}</span>`;
 const linkFor = (path) => `${location.origin}${location.pathname}#${path}`;
@@ -133,13 +133,13 @@ function mesaView(code) {
   const save = (patch) => store.updateBout(code, patch);
   const act = {
     start() {
-      save({ phase: 'combate', timer: { running: true, endsAt: Date.now() + bout.cat.roundSec * 1000 } });
+      save({ phase: 'combate', timer: { running: true, endsAt: now() + bout.cat.roundSec * 1000 } });
     },
     pause() { save({ timer: { running: false, remaining: remaining(bout.timer) } }); },
-    resume() { save({ timer: { running: true, endsAt: Date.now() + remaining(bout.timer) } }); },
+    resume() { save({ timer: { running: true, endsAt: now() + remaining(bout.timer) } }); },
     endRound() { save({ phase: 'revision', timer: { running: false, remaining: 0 } }); },
     addEvent(side, type) {
-      save({ events: [...(bout.events || []), { id: uid(), round: bout.round, side, type, t: Date.now() }] });
+      save({ events: [...(bout.events || []), { id: uid(), round: bout.round, side, type, t: now() }] });
     },
     delEvent(id) { save({ events: (bout.events || []).filter((e) => e.id !== id) }); },
     announce() {
@@ -151,10 +151,10 @@ function mesaView(code) {
       const nb = { ...bout, rounds };
       const st = boutStatus(nb);
       if (st.decided) save({ rounds, phase: 'cierre', timer: { running: false, remaining: 0 } });
-      else save({ rounds, phase: 'descanso', timer: { running: true, endsAt: Date.now() + bout.cat.restSec * 1000 } });
+      else save({ rounds, phase: 'descanso', timer: { running: true, endsAt: now() + bout.cat.restSec * 1000 } });
     },
     nextRound() { save({ round: bout.round + 1, phase: 'listo', timer: { running: false, remaining: bout.cat.roundSec * 1000 } }); },
-    finish(result) { save({ result: { ...result, at: Date.now() }, phase: 'final', timer: { running: false, remaining: 0 } }); },
+    finish(result) { save({ result: { ...result, at: now() }, phase: 'final', timer: { running: false, remaining: 0 } }); },
     reopen() { if (confirm('¿Reabrir el combate para corregir?')) save({ result: null, phase: 'revision' }); },
     absolute(kind) {
       const labels = { ko: 'KO / no se levanta en 10 s', sup: 'Superioridad declarada por el árbitro', les: 'Lesión / abandono del rival', dq: 'Descalificación del rival', doce: 'Diferencia de 12 puntos' };
@@ -356,7 +356,7 @@ function judgeView(code, n) {
 
   store.tap(code, n, 1, 'rojo', 0); // marca al juez como conectado
   cleanup.push(store.watchBout(code, (b) => { bout = b; render(); }));
-  cleanup.push(store.watchJudges(code, Math.max(5, n), (j) => { mine = j[n]; render(); }));
+  cleanup.push(store.watchJudge(code, n, (j) => { mine = j; render(); }));
 }
 
 // ========================================================= PANTALLA PÚBLICA

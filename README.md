@@ -38,21 +38,23 @@ Abrir http://localhost:8000
 
 ## Publicar en línea con Firebase (cuenta juecessandachile@gmail.com)
 
-1. Entrar a https://console.firebase.google.com con la cuenta de Gmail → **Agregar proyecto**
-   (nombre sugerido: `juecessandachile`). Google Analytics no es necesario.
-2. **Compilación → Authentication → Comenzar → Anónimo → Habilitar.**
-3. **Compilación → Firestore Database → Crear base de datos** → ubicación `southamerica-east1` (São Paulo) →
-   modo producción.
-4. **Configuración del proyecto (⚙️) → Tus apps → Web (`</>`)** → registrar la app → copiar el bloque
-   `firebaseConfig` y pegarlo en `js/firebase-config.js`.
-5. Publicar (en un computador con Node.js):
+Proyecto: `juecessandachile-1fe23`. Base de datos: **Realtime Database** (su plan gratuito no cobra por
+lectura; alcanza para más de 120 combates diarios).
 
-```bash
-npm install -g firebase-tools
-firebase login
-firebase use --add
-firebase deploy
-```
+1. **Authentication → Método de acceso → Anónimo → Habilitar.**
+2. **Realtime Database → Crear base de datos** → ubicación Estados Unidos → modo bloqueado.
+3. Pestaña **Reglas** → pegar el contenido de `database.rules.json` → **Publicar**.
+4. La URL de la base (`https://...firebaseio.com`) va en `databaseURL` dentro de `js/firebase-config.js`.
+   Sin `databaseURL`, la app funciona en modo local.
 
-Queda en `https://<proyecto>.web.app`. Las reglas de seguridad (`firestore.rules`) hacen que solo la mesa
-que creó un combate pueda modificarlo; los jueces solo pueden escribir su propia tarjeta mientras el round está abierto.
+La página se publica con GitHub Pages (Settings → Pages → rama `main`, carpeta `/ (root)`)
+o con `firebase deploy --only hosting`.
+
+Las reglas hacen que solo la mesa que creó un combate pueda modificarlo, y que los jueces (1 a 5) solo puedan
+escribir su tarjeta mientras el round está abierto.
+
+### Límites del plan gratuito (Spark)
+
+- Realtime Database: 100 conexiones simultáneas, 1 GB guardado y 10 GB descargados al mes.
+- Cada dispositivo abierto (mesa, jueces, pantalla) es una conexión: con 7 por tatami alcanza para varias plataformas.
+- La mesa central debe usar el mismo navegador durante todo el combate (la sesión anónima identifica al dueño).
