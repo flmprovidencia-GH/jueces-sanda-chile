@@ -1,10 +1,10 @@
-// Pega aquí la configuración de tu proyecto Firebase (Configuración del proyecto → Tus apps → Web).
-// Mientras esté vacía, la app funciona en MODO LOCAL (solo para pruebas en un mismo navegador).
+// Configuración pública del proyecto Firebase "juecessandachile" (no es secreta;
+// la seguridad la dan las reglas de firestore.rules).
 export const firebaseConfig = {
-  // apiKey: "...",
-  // authDomain: "....firebaseapp.com",
-  // projectId: "...",
-  // storageBucket: "...",
-  // messagingSenderId: "...",
-  // appId: "...",
+  apiKey: "AIzaSyAccyiGfeodSsK97Qu3K7N-EPTzvyN76eA",
+  authDomain: "juecessandachile-1fe23.firebaseapp.com",
+  projectId: "juecessandachile-1fe23",
+  storageBucket: "juecessandachile-1fe23.firebasestorage.app",
+  messagingSenderId: "941957117018",
+  appId: "1:941957117018:web:863a0fa22c06b5d5e7d463",
 };
