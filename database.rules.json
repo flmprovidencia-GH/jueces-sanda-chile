@@ -1,18 +1,61 @@
 {
   "rules": {
-    "combates": {
-      ".indexOn": ["owner"],
-      ".read": "auth != null",
-      "$code": {
-        ".write": "auth != null && ((!data.exists() && newData.child('owner').val() === auth.uid) || data.child('owner').val() === auth.uid)",
-        ".validate": "newData.child('owner').val() === (data.exists() ? data.child('owner').val() : auth.uid)"
+    "config": {
+      ".read": true,
+      ".write": "(auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true) || (auth != null && !root.child('config/inicializado').exists())"
+    },
+    "login": {
+      ".read": true,
+      "$k": {
+        ".write": "(auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true) || (auth != null && !root.child('config/inicializado').exists())"
       }
+    },
+    "usuarios": {
+      ".read": "auth != null",
+      "$k": {
+        ".write": "(auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true) || (auth != null && !root.child('config/inicializado').exists() && newData.child('uid').val() === auth.uid)"
+      }
+    },
+    "uids": {
+      ".read": "auth != null",
+      "$uid": {
+        ".write": "(auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true) || (auth != null && !root.child('config/inicializado').exists() && $uid === auth.uid)"
+      }
+    },
+    "presencia": {
+      ".read": "auth != null",
+      "$k": {
+        ".write": "auth != null && root.child('uids/' + auth.uid).val() === $k"
+      }
+    },
+    "torneos": {
+      ".read": true,
+      ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true"
+    },
+    "paneles": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true"
+    },
+    "plataformas": {
+      ".read": true,
+      ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && (root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/mesa').val() === true || root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true)"
+    },
+    "asignaciones": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && (root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/mesa').val() === true || root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true)"
+    },
+    "combates": {
+      ".read": true,
+      ".indexOn": [
+        "torneo"
+      ],
+      ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && (root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/mesa').val() === true || root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true)"
     },
     "jueces": {
       ".read": "auth != null",
       "$code": {
         "$n": {
-          ".write": "auth != null && $n.matches(/^[1-5]$/) && root.child('combates/' + $code + '/phase').val().matches(/^(listo|combate|revision)$/)"
+          ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('combates/' + $code + '/puestos/' + $n).val() === root.child('uids/' + auth.uid).val() && root.child('combates/' + $code + '/phase').val().matches(/^(listo|combate|revision)$/)"
         }
       }
     }
