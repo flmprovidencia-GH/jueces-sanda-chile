@@ -9,3 +9,4 @@ cat > firebase.json <<J
 {"database":{"rules":"../../database.rules.json"},"emulators":{"auth":{"port":9099},"database":{"port":9000},"ui":{"enabled":false},"singleProjectMode":true}}
 J
 npx -y firebase-tools@13.29.1 emulators:exec --project demo-sanda "node flujo-completo.cjs $OUT"
+npx -y firebase-tools@13.29.1 emulators:exec --project demo-sanda "node importar-editar.cjs $OUT $ROOT/ejemplos/capacitacion-3-plataformas.csv"

@@ -32,3 +32,16 @@ test('informa errores por fila', () => {
   assert.equal(errors.length, 4);
   assert.match(errors[0], /Fila 2/);
 });
+
+test('tolera "P1", fila de título, encabezados con acentos dañados y Excel en español', () => {
+  let r = parseProgram('Programa Copa 2026,,\nPlataforma,Rojo,Azul\nP1,Ana,Bea\nPlataforma 2,Carla,Dora\n');
+  assert.deepEqual(r.errors, []);
+  assert.deepEqual(r.bouts.map((b) => b.plataforma), [1, 2]);
+  r = parseProgram('Orden,Plataforma,Categor�a,Rojo,Azul\n1,1,Infantil,Jose,Bea\n');
+  assert.equal(r.bouts[0].catKey, 'infantil');
+  r = parseProgram('Orden;Plataforma;Categoría;Jueces;Rojo;Peso rojo;Azul\n1;3;Super lucha;5;Ana;64,2;Bea\n');
+  assert.equal(r.bouts[0].rojo.weight, 64.2);
+  assert.equal(r.bouts[0].judges, 5);
+  r = parseProgram('Rojo,Azul\nAna,Bea\n');
+  assert.equal(r.warnings.length, 3);
+});

@@ -50,6 +50,7 @@ export function actaView(code) {
         <table><tr><th></th><th>Competidor</th><th>Club</th><th>Peso</th><th>Rounds</th><th>Adv</th><th>Amon</th><th>Conteos</th></tr>
           ${SIDES.map((s) => `<tr><td>${winnerTag(s)}</td><td>${esc(b[s].name)}</td><td>${esc(b[s].club || '')}</td><td>${b[s].weight ?? ''}</td>
             <td><b>${st.wins[s]}</b></td><td>${warnings(b.events, s)}</td><td>${admonitions(b.events, s)}</td><td>${counts(b.events, s)}</td></tr>`).join('')}</table>
+        <p><b>Juez de plataforma:</b> ${esc(b.arbitro ? name(b.arbitro) : '—')} · <b>Mesa central:</b> ${esc(b.mesa ? name(b.mesa) : '—')}</p>
         <p style="font-size:1.1rem"><b>Resultado:</b> ${b.result ? (b.result.winner === 'empate' ? 'EMPATE' : `Gana ${fighter(b, b.result.winner)}`) + ` — ${esc(b.result.reason)}` : 'Sin terminar'}</p>
       </div>
       ${rounds.map((n) => { const rd = b.rounds[n]; return `<div class="card"><h3>Round ${n > 3 ? 'extra' : n}: ${winnerTag(rd.winner)} <span class="muted">${esc(rd.reason || '')}</span></h3>
@@ -58,7 +59,8 @@ export function actaView(code) {
         <p class="muted" style="font-size:.85rem">Acciones de mesa: ${b.events.filter((e) => e.round === n).map((e) => `${esc(b[e.side].name)}: ${esc(EVENT_TYPES[e.type]?.label)}`).join(' · ') || 'ninguna'}</p></div>`; }).join('')}
       <div class="card"><h3>Firmas</h3><div class="firmas">
         ${Object.entries(b.puestos).map(([n, k]) => `<div>______________________<br>J${n} ${esc(name(k))}</div>`).join('')}
-        <div>______________________<br>Juez principal</div></div></div>
+        <div>______________________<br>Juez de plataforma${b.arbitro ? ` ${esc(name(b.arbitro))}` : ''}</div>
+        <div>______________________<br>Juez principal${b.mesa ? ` ${esc(name(b.mesa))}` : ''}</div></div></div>
     </div>`;
   };
   onLeave(D.watch(`combates/${code}`, (v) => {

@@ -6,11 +6,15 @@ App web para puntuar combates de Wushu Sanda (reglamento IWUF 2024) desde celula
 
 1. **Administrador** (por ejemplo, el jefe de jueces) crea los usuarios: `nombre.apellido` + PIN de 6 dígitos,
    con roles *Juez de línea*, *Mesa central* y/o *Administrador*.
-2. Crea el **torneo** (hasta 3 plataformas), arma los **paneles** de jueces y pega el **programa** desde Google Sheets.
+2. Crea el **torneo** (hasta 3 plataformas), arma los **paneles** de jueces y carga el **programa**: sube el Excel
+   (.xlsx) o CSV, o pega la tabla desde Google Sheets. Después se puede editar, agregar, reiniciar o eliminar cada combate.
+   Hay un ejemplo listo en `ejemplos/capacitacion-3-plataformas.xlsx` (3 combates por plataforma).
 3. Cada **juez** entra con su usuario y PIN desde el celular y queda esperando.
-4. La **mesa central** de cada plataforma asigna los puestos (Juez 1 a 5) o carga un panel con un clic.
+4. La **mesa central** de cada plataforma asigna los puestos (Juez 1 a 5) o carga un panel con un clic, y registra al
+   **juez de plataforma** (no puntúa; queda en el acta).
    El celular del juez cambia solo a los botones ROJO / AZUL y sigue solo al siguiente combate.
-5. Al terminar, queda el **acta** con el puntaje de cada juez y se pueden descargar los resultados en CSV.
+5. El administrador puede editar el nombre de un usuario o eliminarlo (sale de puestos y paneles y pierde el acceso).
+6. Al terminar, queda el **acta** con el puntaje de cada juez y se pueden descargar los resultados en CSV.
 
 | Pantalla | Enlace | Quién la usa |
 |---|---|---|

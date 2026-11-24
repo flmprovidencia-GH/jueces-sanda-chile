@@ -19,7 +19,7 @@ function route() {
   if (!D.authReady) { $app.innerHTML = '<p class="muted center pad">Cargando…</p>'; return; }
   const p = D.currentProfile();
   if (!p) return loginView();
-  if (p.invalid) return msg('Esta sesión ya no es válida (quizás te restablecieron el PIN). Vuelve a ingresar.', true);
+  if (p.invalid) return msg('Esta sesión ya no es válida: tu usuario fue eliminado o tu PIN fue restablecido. Habla con el administrador.', true);
   if (!p.activo) return msg('Tu usuario está desactivado. Habla con el administrador.', true);
   const r = p.roles || {};
   const mesa = r.mesa || r.admin;
@@ -182,7 +182,9 @@ function usersView() {
         <td style="text-align:left"><span class="dot ${pres[k] ? 'on' : ''}"></span>${esc(u.nombre)}</td><td><code>${esc(D.userOf(k))}</code></td>
         ${ROLES.map(([r]) => `<td><input type="checkbox" data-role="${r}" data-k="${k}" ${u.roles?.[r] ? 'checked' : ''} ${k === me && r === 'admin' ? 'disabled' : ''}></td>`).join('')}
         <td><input type="checkbox" data-act data-k="${k}" ${u.activo ? 'checked' : ''} ${k === me ? 'disabled' : ''}></td>
-        <td><button class="small" data-reset="${k}">Restablecer PIN</button></td></tr>`).join('')}
+        <td class="actions"><button class="small" data-edit="${k}">✏️ Nombre</button>
+          <button class="small" data-reset="${k}">Restablecer PIN</button>
+          ${k === me ? '' : `<button class="small danger" data-del="${k}">🗑 Eliminar</button>`}</td></tr>`).join('')}
     </table></div>`;
   };
   onLeave(D.watch('usuarios', (u) => { users = u || {}; render(); }));
@@ -193,6 +195,18 @@ function usersView() {
     if (t.hasAttribute('data-act')) D.set(`usuarios/${t.dataset.k}/activo`, t.checked);
   };
   const onClick = async (e) => {
+    const ed = e.target.closest('[data-edit]')?.dataset.edit;
+    if (ed) {
+      const n = prompt(`Nombre completo de ${D.userOf(ed)}:`, users[ed]?.nombre || '');
+      if (n && n.trim()) await D.set(`usuarios/${ed}/nombre`, n.trim());
+      return;
+    }
+    const del = e.target.closest('[data-del]')?.dataset.del;
+    if (del) {
+      if (!confirm(`¿Eliminar a ${users[del]?.nombre} (${D.userOf(del)})?\n\nNo podrá volver a ingresar y saldrá de los puestos y paneles. Las actas ya firmadas conservan su nombre de usuario.`)) return;
+      try { await D.deleteUser(del); } catch (x) { alert('No se pudo eliminar: ' + x.message); }
+      return;
+    }
     const k = e.target.closest('[data-reset]')?.dataset.reset; if (!k) return;
     const pin = prompt(`Nuevo PIN de 6 dígitos para ${D.userOf(k)}:`, String(Math.floor(Math.random() * 1e6)).padStart(6, '0'));
     if (!pin) return;

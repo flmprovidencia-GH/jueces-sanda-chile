@@ -42,6 +42,11 @@ export function plataformaView(tid, p) {
         <td><select data-seat="${n}"><option value="">— vacío —</option>
           ${judges.map(([k, u]) => `<option value="${k}" ${s[n] === k ? 'selected' : ''}>${esc(u.nombre)}${where(k)}</option>`).join('')}</select></td>
         <td style="width:24px"><span class="dot ${s[n] && pres[s[n]] ? 'on' : ''}" data-dotk="${s[n] || ''}" title="Conectado"></span></td></tr>`).join('')}</table>
+      <div class="row arbitro"><b>Juez de plataforma</b>
+        <select data-arbitro class="grow"><option value="">— sin registrar —</option>
+          ${Object.entries(users).filter(([, u]) => u.activo).sort((a, b) => a[1].nombre.localeCompare(b[1].nombre))
+            .map(([k, u]) => `<option value="${k}" ${plat.arbitro === k ? 'selected' : ''}>${esc(u.nombre)}</option>`).join('')}</select></div>
+      <p class="muted" style="font-size:.8rem;margin:2px 0 8px">Solo para el registro: no puntúa. Queda en el acta de cada combate.</p>
       ${cur ? `<p class="muted" style="font-size:.85rem">Combate actual: ${cur.judges} jueces${need < 5 ? ` (puestos ${need + 1}-5 no puntúan)` : ''}.</p>` : ''}
       <div class="row" style="margin-top:8px">
         <select id="panelsel" style="max-width:200px"><option value="">Cargar panel…</option>
@@ -106,6 +111,7 @@ export function plataformaView(tid, p) {
     const upd = { [`plataformas/${tid}/${p}/actual`]: code };
     if (cur && cur.code !== code && cur.phase !== 'final') upd[`combates/${cur.code}/phase`] = cur.events.length || Object.keys(cur.rounds).length ? cur.phase : 'programado';
     upd[`combates/${code}/phase`] = 'listo';
+    upd[`combates/${code}/arbitro`] = plat.arbitro || null;
     upd[`combates/${code}/round`] = 1;
     upd[`combates/${code}/timer`] = { running: false, remaining: b.cat.roundSec * 1000 };
     for (let n = 1; n <= 5; n++) upd[`combates/${code}/puestos/${n}`] = n <= b.judges ? (s[n] || null) : null;
@@ -147,6 +153,11 @@ export function plataformaView(tid, p) {
     const el = e.target;
     if (el.dataset.seat) { draft = { ...(draft || seats()), [el.dataset.seat]: el.value || null }; renderPuestos(); }
     if (el.id === 'panelsel' && el.value) { draft = fromPanel(el.value); renderPuestos(); }
+    if (el.hasAttribute('data-arbitro')) {
+      const v = el.value || null, cur = current(), upd = { [`plataformas/${tid}/${p}/arbitro`]: v };
+      if (cur && cur.phase !== 'final') upd[`combates/${cur.code}/arbitro`] = v;
+      D.update(upd);
+    }
   };
   const onClick = (e) => {
     const el = e.target.closest('button'); if (!el) return;
@@ -198,7 +209,7 @@ function mesaPanel(root, code, ctx) {
       else save({ rounds, phase: 'descanso', timer: { running: true, endsAt: D.now() + bout.cat.restSec * 1000 } });
     },
     nextRound() { save({ round: bout.round + 1, phase: 'listo', timer: { running: false, remaining: bout.cat.roundSec * 1000 } }); },
-    finish(result) { save({ result: { ...result, at: D.now() }, phase: 'final', timer: { running: false, remaining: 0 } }); },
+    finish(result) { save({ result: { ...result, at: D.now() }, mesa: D.currentProfile()?.key || null, phase: 'final', timer: { running: false, remaining: 0 } }); },
     reopen() { if (confirm('¿Reabrir el combate para corregir?')) save({ result: null, phase: 'revision' }); },
     absolute(kind) {
       const labels = { ko: 'KO / no se levanta en 10 s', sup: 'Superioridad declarada por el árbitro', les: 'Lesión / abandono del rival', dq: 'Descalificación del rival' };

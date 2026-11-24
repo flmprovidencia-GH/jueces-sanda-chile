@@ -145,9 +145,61 @@ export async function createUser({ nombre, username, pin, roles }) {
   const key = keyOf(username);
   if (!key) throw new Error('Usuario inválido');
   if (await get(`login/${key}`)) throw new Error('Ese usuario ya existe');
-  const email = emailFor(key);
-  const uid = await createAuthAccount(email, pin);
+  // Si el usuario existió antes (fue eliminado), su cuenta antigua sigue en Firebase Auth: usamos otro correo interno.
+  let email = emailFor(key), uid;
+  try { uid = await createAuthAccount(email, pin); } catch (e) {
+    if (!/email-already-in-use/.test(e.code || '')) throw e;
+    email = emailFor(key, `-${Date.now().toString(36)}`);
+    uid = await createAuthAccount(email, pin);
+  }
   await update({ [`usuarios/${key}`]: { nombre, uid, roles, activo: true }, [`uids/${uid}`]: key, [`login/${key}`]: email });
+}
+
+// Elimina un usuario: pierde todo acceso y sale de puestos y paneles. (La cuenta interna de
+// Firebase Auth queda huérfana y sin permisos; no se puede borrar desde el navegador.)
+export async function deleteUser(key) {
+  const u = await get(`usuarios/${key}`);
+  const upd = { [`usuarios/${key}`]: null, [`login/${key}`]: null, [`presencia/${key}`]: null, [`asignaciones/${key}`]: null };
+  if (u?.uid) upd[`uids/${u.uid}`] = null;
+  const plats = (await get('plataformas')) || {};
+  for (const [tid, ps] of Object.entries(plats)) for (const [p, pl] of Object.entries(toObj(ps))) {
+    for (const [n, k] of Object.entries(toObj(pl?.puestos))) if (k === key) upd[`plataformas/${tid}/${p}/puestos/${n}`] = null;
+    if (pl?.arbitro === key) upd[`plataformas/${tid}/${p}/arbitro`] = null;
+  }
+  const pan = (await get('paneles')) || {};
+  for (const [tid, ps] of Object.entries(pan)) for (const [pid, x] of Object.entries(ps || {})) {
+    const m = toArr(x.miembros);
+    if (m.includes(key)) upd[`paneles/${tid}/${pid}/miembros`] = m.filter((k) => k !== key);
+  }
+  await update(upd);
+}
+
+// Elimina un combate y las tarjetas de sus jueces.
+export async function deleteBout(code, b) {
+  const upd = { [`combates/${code}`]: null, [`jueces/${code}`]: null };
+  if (b?.torneo && (await get(`plataformas/${b.torneo}/${b.plataforma}/actual`)) === code) upd[`plataformas/${b.torneo}/${b.plataforma}/actual`] = null;
+  await update(upd);
+}
+
+// Devuelve un combate a "Programado" (borra puntajes, acciones y resultado). Útil en capacitaciones.
+export async function resetBout(code, b) {
+  const upd = {
+    [`combates/${code}/phase`]: 'programado', [`combates/${code}/round`]: 1, [`combates/${code}/events`]: null,
+    [`combates/${code}/rounds`]: null, [`combates/${code}/result`]: null, [`combates/${code}/puestos`]: null,
+    [`combates/${code}/timer`]: { running: false, remaining: (b?.cat?.roundSec || 120) * 1000 }, [`jueces/${code}`]: null,
+  };
+  if (b?.torneo && (await get(`plataformas/${b.torneo}/${b.plataforma}/actual`)) === code) upd[`plataformas/${b.torneo}/${b.plataforma}/actual`] = null;
+  await update(upd);
+}
+
+// Elimina un torneo completo: combates, tarjetas, paneles, plataformas y asignaciones.
+export async function deleteTorneo(tid) {
+  const bouts = await queryEq('combates', 'torneo', tid);
+  const upd = { [`torneos/${tid}`]: null, [`paneles/${tid}`]: null, [`plataformas/${tid}`]: null };
+  for (const code of Object.keys(bouts)) { upd[`combates/${code}`] = null; upd[`jueces/${code}`] = null; }
+  const asg = (await get('asignaciones')) || {};
+  for (const [k, a] of Object.entries(asg)) if (a?.torneo === tid) upd[`asignaciones/${k}`] = null;
+  await update(upd);
 }
 
 // Firebase no deja cambiar la clave de otra cuenta desde el navegador: se crea una cuenta nueva

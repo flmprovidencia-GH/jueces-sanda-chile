@@ -15,13 +15,13 @@ rules = {"rules": {
   "login": {".read": True, "$k": {".write": f"({ADMIN}) || ({BOOT})"}},
   "usuarios": {".read": AUTH, "$k": {".write": f"({ADMIN}) || ({BOOT} && newData.child('uid').val() === auth.uid)"}},
   "uids": {".read": AUTH, "$uid": {".write": f"({ADMIN}) || ({BOOT} && $uid === auth.uid)"}},
-  "presencia": {".read": AUTH, "$k": {".write": f"{AUTH} && root.child('uids/' + auth.uid).val() === $k"}},
+  "presencia": {".read": AUTH, "$k": {".write": f"({AUTH} && root.child('uids/' + auth.uid).val() === $k) || ({ADMIN})"}},
   "torneos": {".read": True, ".write": ADMIN},
   "paneles": {".read": AUTH, ".write": ADMIN},
   "plataformas": {".read": True, ".write": MESA},
   "asignaciones": {".read": AUTH, ".write": MESA},
   "combates": {".read": True, ".indexOn": ["torneo"], ".write": MESA},
-  "jueces": {".read": AUTH, "$code": {"$n": {".write":
+  "jueces": {".read": AUTH, "$code": {".write": ADMIN, "$n": {".write":
     f"{ACT} && root.child('combates/' + $code + '/puestos/' + $n).val() === {ME}"
     " && root.child('combates/' + $code + '/phase').val().matches(/^(listo|combate|revision)$/)"}}},
 }}

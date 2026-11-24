@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-let PAGES = [], ERRS = [];
+let PAGES = [], ERRS = [], NEXT = [];
 const OUT = process.argv[2], BASE = 'http://127.0.0.1:8766/?emu=1';
 const log = (...a) => console.log('•', ...a);
 (async () => {
@@ -8,8 +8,8 @@ const log = (...a) => console.log('•', ...a);
   const mk = async (name, opts = {}) => {
     const ctx = await browser.newContext(opts); const p = await ctx.newPage();
     p.on('pageerror', (e) => errors.push(`${name}: ${e.message}`));
-    p.on('console', (m) => { if (m.type() === 'error' || /PERMISSION|permission_denied/i.test(m.text())) errors.push(`${name}: ${m.text()}`); });
-    p.on('dialog', (d) => d.accept(d.type() === 'prompt' ? d.defaultValue() : undefined));
+    p.on('console', (m) => { if ((m.type() === 'error' && !/status of 400/.test(m.text())) || /PERMISSION|permission_denied/i.test(m.text())) errors.push(`${name}: ${m.text()}`); });
+    p.on('dialog', (d) => d.accept(d.type() === 'prompt' ? (NEXT.length ? NEXT.shift() : d.defaultValue()) : undefined));
     PAGES.push([name, p]); return p;
   };
   const phone = { viewport: { width: 390, height: 780 }, hasTouch: true, isMobile: true };
@@ -45,7 +45,7 @@ const log = (...a) => console.log('•', ...a);
     '2\t1\tSuper lucha\t-75 kg\tFinal\tEliminación\t3\tPanel A\t\tMatías Pérez\tClub Grulla\t74\tJorge Muñoz\tClub Halcón\t75',
     '3\t2\tInfantil\t-40 kg\tFinal\tEliminación\t3\t\t\tTomás Díaz\tClub Dragón\t39.5\tLuis Pérez\tClub Tigre\t38.9'].join('\n');
   await A.fill('#paste', rows);
-  await A.waitForSelector('#doimport:not([disabled])'); await A.click('#doimport');
+  await A.waitForSelector('[data-import=add]:not([disabled])'); await A.click('[data-import=add]');
   await A.waitForFunction(() => document.body.innerText.includes('Camila Rojas') && document.body.innerText.includes('3 combates'), null, { timeout: 15000 });
   log('programa importado'); await A.screenshot({ path: `${OUT}/torneo.png`, fullPage: true });
 
@@ -60,6 +60,7 @@ const log = (...a) => console.log('•', ...a);
 
   // Mesa plataforma 1
   await A.goto(BASE + `#/plataforma/${tid}/1`); await A.waitForSelector('text=Siguiente');
+  await A.selectOption('[data-arbitro]', 'jefe_jueces');
   await A.click('[data-load]'); // acepta cargar Panel A
   await J[0].waitForSelector('.pad-btn', { timeout: 15000 }); log('jueces asignados automáticamente por panel');
   await A.click('[data-a=start]'); await J[0].waitForSelector('.pad-btn:not([disabled])');
@@ -77,6 +78,7 @@ const log = (...a) => console.log('•', ...a);
   await scr.goto(BASE + `#/pantalla/${tid}/1`); await scr.waitForSelector('.fighter'); await scr.screenshot({ path: `${OUT}/pantalla.png` });
   await A.click('text=Ver acta'); await A.waitForSelector('text=Firmas'); await A.waitForTimeout(400);
   await A.screenshot({ path: `${OUT}/acta.png`, fullPage: true });
+  log('acta registro:', (await A.locator('.acta .card').first().innerText()).match(/Juez de plataforma:[^\n]*/)?.[0]);
   log('acta:', (await A.locator('.acta .card').nth(1).innerText()).replace(/\s+/g, ' ').slice(0, 200));
   // Siguiente combate: jueces cambian solos
   await A.goBack(); await A.waitForSelector('text=Siguiente');
@@ -91,6 +93,40 @@ const log = (...a) => console.log('•', ...a);
   }, tid);
   log('seguridad (juez 1):', JSON.stringify(sec));
   ERRS.splice(0, ERRS.length, ...ERRS.filter((e) => !/permission_denied/.test(e)));
+  // ---------- Edición y eliminación (administrador)
+  await A.goto(BASE + '#/usuarios'); await A.waitForSelector('[data-edit=luis_diaz]');
+  NEXT.push('Luis Alberto Díaz'); await A.click('[data-edit=luis_diaz]');
+  await A.waitForFunction(() => document.querySelector('#list').innerText.includes('Luis Alberto Díaz'));
+  await A.click('[data-del=ana_soto]');
+  await A.waitForFunction(() => !document.querySelector('#list').innerText.includes('ana.soto'));
+  await J[1].waitForSelector('text=Ingresar', { timeout: 15000 }).catch(() => {});
+  const after = await A.evaluate(async (tid) => { const D = await import('./js/data.js');
+    return { puestos: await D.get(`plataformas/${tid}/1/puestos`), paneles: await D.get(`paneles/${tid}`), login: await D.get('login/ana_soto') }; }, tid);
+  log('tras eliminar a ana.soto:', JSON.stringify({ puestos: after.puestos, enPanel: JSON.stringify(after.paneles).includes('ana_soto'), login: after.login }));
+  log('juez eliminado ve:', (await J[1].innerText('body')).replace(/\s+/g, ' ').slice(0, 80));
+  await A.fill('input[name=nombre]', 'Ana Soto'); await A.fill('input[name=u]', 'ana.soto'); await A.fill('input[name=pin]', '555555');
+  await A.click('#f button[type=submit]');
+  await A.waitForFunction(() => document.querySelector('#list')?.innerText.includes('ana.soto'), null, { timeout: 15000 });
+  const J2 = await mk('ana-nueva', phone); await J2.goto(BASE + '#/'); await J2.fill('input[name=u]', 'ana.soto'); await J2.fill('input[name=pin]', '555555');
+  await J2.click('button[type=submit]'); await J2.waitForSelector('text=Esperando que la mesa', { timeout: 15000 });
+  log('ana.soto recreada e ingresó con PIN nuevo');
+  await A.screenshot({ path: `${OUT}/usuarios_editar.png`, fullPage: true });
+
+  await A.goto(BASE + `#/torneo/${tid}`); await A.waitForSelector('[data-resetb]');
+  await A.locator('[data-resetb]').first().click();
+  await A.waitForFunction(() => document.body.innerText.includes('Programado') && !document.querySelector('[data-resetb]') || document.querySelectorAll('[data-resetb]').length < 2, null, { timeout: 10000 }).catch(() => {});
+  const st1 = await A.evaluate(async (tid) => { const D = await import('./js/data.js'); const c = await D.queryEq('combates', 'torneo', tid);
+    return Object.values(c).map((b) => `#${b.orden}:${b.phase}${b.result ? ':con resultado' : ''}`).join(' '); }, tid);
+  log('tras reiniciar #1:', st1);
+  const n0 = await A.locator('[data-delb]').count(); await A.locator('[data-delb]').nth(1).click();
+  await A.waitForFunction((n) => document.querySelectorAll('[data-delb]').length === n - 1, n0, { timeout: 10000 });
+  log('combate eliminado:', n0, '→', n0 - 1);
+  await A.screenshot({ path: `${OUT}/torneo_acciones.png`, fullPage: true });
+  NEXT.push('ELIMINAR'); await A.click('#deltorneo');
+  await A.waitForFunction(() => location.hash === '#/' || location.hash === '#');
+  const left = await A.evaluate(async (tid) => { const D = await import('./js/data.js');
+    return { torneo: await D.get(`torneos/${tid}`), combates: Object.keys(await D.queryEq('combates', 'torneo', tid)).length, plat: await D.get(`plataformas/${tid}`), asig: await D.get('asignaciones') }; }, tid);
+  log('tras eliminar torneo:', JSON.stringify(left));
   console.log('ERRORS:', errors.length ? errors : 'none');
   await browser.close();
 })().catch(async (e) => { console.error('FAIL', e.message.split('\n')[0]); console.log('ERRS', ERRS);

@@ -25,7 +25,7 @@
     "presencia": {
       ".read": "auth != null",
       "$k": {
-        ".write": "auth != null && root.child('uids/' + auth.uid).val() === $k"
+        ".write": "(auth != null && root.child('uids/' + auth.uid).val() === $k) || (auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true)"
       }
     },
     "torneos": {
@@ -54,6 +54,7 @@
     "jueces": {
       ".read": "auth != null",
       "$code": {
+        ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('roles/admin').val() === true",
         "$n": {
           ".write": "auth != null && root.child('uids/' + auth.uid).isString() && root.child('usuarios/' + root.child('uids/' + auth.uid).val()).child('activo').val() === true && root.child('combates/' + $code + '/puestos/' + $n).val() === root.child('uids/' + auth.uid).val() && root.child('combates/' + $code + '/phase').val().matches(/^(listo|combate|revision)$/)"
         }
