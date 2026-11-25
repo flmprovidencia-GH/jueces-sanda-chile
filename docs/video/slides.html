@@ -1,0 +1,58 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1280px;height:720px;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eef2f6;
+ background:radial-gradient(1200px 700px at 20% 30%,#1d2633 0%,#111418 60%)}
+.stage{position:absolute;inset:0;display:grid;grid-template-columns:470px 1fr;align-items:center;padding:0 70px 50px 40px}
+.phone{justify-self:center;position:relative;width:300px;height:600px;border-radius:38px;padding:10px;background:#05070a;
+ box-shadow:0 0 0 3px #2c3440,0 30px 60px rgba(0,0,0,.55)}
+.phone img{width:100%;height:100%;border-radius:28px;display:block;object-fit:cover}
+.ring{position:absolute;width:86px;height:86px;margin:-43px 0 0 -43px;border-radius:50%;border:6px solid #fff;
+ box-shadow:0 0 0 8px rgba(255,255,255,.25),0 0 30px rgba(255,255,255,.6);background:rgba(255,255,255,.18)}
+.ring.small{width:60px;height:60px;margin:-30px 0 0 -30px;border-width:5px}
+.txt .step{display:inline-block;font-weight:800;font-size:22px;letter-spacing:.5px;color:#04210f;background:#2fb36c;border-radius:999px;padding:6px 18px;margin-bottom:22px}
+.txt h1{font-size:50px;line-height:1.1;margin-bottom:22px;font-weight:800}
+.txt p{font-size:29px;line-height:1.4;color:#c9d3de;margin-bottom:14px}
+.txt b{color:#fff} .r{color:#ff6b7d} .a{color:#6fb0ff} .g{color:#4fd18b}
+.big{font-size:34px!important;color:#fff!important;background:#232a33;border-left:6px solid #2fb36c;padding:14px 20px;border-radius:10px}
+.bar{position:absolute;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;
+ background:#0b0e12;color:#93a1b1;font-size:19px;border-top:1px solid #232a33}
+.title{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding-bottom:48px}
+.title .logo{font-size:110px;margin-bottom:10px}
+.title h1{font-size:68px;font-weight:900;margin-bottom:16px}
+.title h2{font-size:36px;font-weight:600;color:#c9d3de}
+.title .pill{margin-top:34px;font-size:26px;color:#04210f;background:#2fb36c;border-radius:999px;padding:10px 26px;font-weight:800}
+ul.tips{list-style:none;font-size:30px;line-height:1.35}
+ul.tips li{margin:0 0 16px;padding-left:56px;position:relative;color:#dfe6ee}
+ul.tips li span{position:absolute;left:0;top:-2px;font-size:36px}
+</style></head><body><div id="root"></div>
+<script>
+const S = [
+ {title:true},
+ {img:'01_login',step:'Paso 1',h:'Ingresa',p:['Abre el enlace que te envía la organización.','Escribe tu <b>usuario</b> (nombre.apellido) y tu <b>PIN de 6 dígitos</b>.']},
+ {img:'02_espera',step:'Paso 2',h:'Espera tu puesto',p:['La <b>mesa central</b> te asigna un puesto.','<span class="big">No toques nada: la pantalla cambia sola.</span>']},
+ {img:'03_asignado',step:'Paso 2',h:'Ya tienes puesto',p:['Arriba ves tu <b>plataforma</b> y tu número de <b>juez</b>.','Deja la pantalla abierta hasta que cargue el combate.']},
+ {img:'04_bloqueado',step:'Paso 3',h:'Llega el combate',p:['Ves a <span class="r">Rojo</span> y <span class="a">Azul</span>.','Los botones se activan cuando la mesa <b>inicia el round</b>.']},
+ {img:'05_activo',step:'Paso 4',h:'¡A puntuar!',p:['Toda la pantalla son <b>dos botones</b>:','<span class="r">ROJO</span> a la izquierda · <span class="a">AZUL</span> a la derecha.']},
+ {img:'06_rojo1',ring:[25,50],step:'Paso 4',h:'1 toque = 1 punto',p:['Puño al torso o la cabeza, patada al muslo… <b>toca una vez</b>.']},
+ {img:'07_rojo3',ring:[25,50],step:'Paso 4',h:'2 puntos = 2 toques',p:['Patada al torso o cabeza, derribo… <b>toca dos veces seguidas</b>.','El número grande muestra tus puntos.']},
+ {img:'08_azul1',ring:[75,50],step:'Paso 4',h:'Lo mismo para Azul',p:['Toca el lado del competidor que <b>anotó</b>.']},
+ {img:'09_penal',step:'Importante',h:'Las faltas no las marcas tú',p:['Amonestaciones, advertencias y salidas las registra la <b>mesa central</b>.','Se suman solas en <b>"Total c/penalizaciones"</b>.']},
+ {img:'10_antes_deshacer',ring:[75,50],step:'¿Error?',h:'¿Tocaste de más?',p:['Le diste un punto que no era…']},
+ {img:'11_deshacer',ring:[40,94.5],small:true,step:'¿Error?',h:'↶ Deshacer último',p:['Abajo, toca <b>Deshacer último</b> y se borra tu último toque.']},
+ {img:'12_cerrado',step:'Paso 5',h:'Fin del round',p:['Los botones se bloquean.','La mesa compara a los jueces y <b>anuncia el resultado</b>.']},
+ {img:'13_siguiente',step:'Paso 6',h:'Siguiente combate',p:['Aparece <b>solo</b>, con los nuevos competidores.','<span class="big">No cierres la app entre combates.</span>']},
+ {tips:true},
+];
+const i = Number(location.hash.slice(1) || 0), s = S[i], root = document.getElementById('root');
+const bar = `<div class="bar"><span>🥋 Jueces Sanda Chile</span><span>Guía rápida · Jueces de línea</span></div>`;
+if (s.title) root.innerHTML = `<div class="title"><div class="logo">📱</div><h1>Jueces de línea</h1><h2>Cómo puntuar desde tu celular</h2><div class="pill">Guía de 1 minuto</div></div>${bar}`;
+else if (s.tips) root.innerHTML = `<div class="stage" style="grid-template-columns:1fr;padding:0 120px 50px"><div class="txt"><span class="step">Consejos</span>
+ <h1>Antes de empezar</h1><ul class="tips">
+ <li><span>🔋</span>Celular con <b>batería</b> y brillo alto.</li>
+ <li><span>🔕</span>Activa <b>No molestar</b>: nada de llamadas ni avisos.</li>
+ <li><span>📶</span>Conéctate al <b>Wi-Fi</b> o con buenos datos.</li>
+ <li><span>👀</span>Mira el combate, no la pantalla: los botones son enormes.</li>
+ <li><span>🚪</span>Al terminar tu turno, toca <b>Salir</b>.</li></ul></div></div>${bar}`;
+else root.innerHTML = `<div class="stage"><div class="phone"><img src="shots/${s.img}.png">${s.ring ? `<div class="ring ${s.small ? 'small' : ''}" style="left:${s.ring[0]}%;top:${s.ring[1]}%"></div>` : ''}</div>
+ <div class="txt"><span class="step">${s.step}</span><h1>${s.h}</h1>${s.p.map((x) => `<p>${x}</p>`).join('')}</div></div>${bar}`;
+</script></body></html>
