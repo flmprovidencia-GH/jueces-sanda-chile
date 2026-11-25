@@ -1,6 +1,6 @@
 // Administración de un torneo: datos, paneles de jueces, programa (desde Google Sheets) y resultados.
 import * as D from './data.js';
-import { CATEGORIES, boutStatus } from './logic.js';
+import { CATEGORIES, boutStatus, warnings, admonitions, counts } from './logic.js';
 import { parseProgram, TEMPLATE_HEADERS } from './program.js';
 import { $app, esc, href, topbar, onLeave, fighter, genCode, downloadFile, csvRow, SIDE_LABEL } from './ui.js';
 
@@ -66,7 +66,7 @@ export function torneoView(tid) {
         </details>
         <div class="row" style="margin:12px 0"><b>${list.length}</b> combates · ${done} finalizados
           <span class="grow"></span><button class="small primary" id="newbout">＋ Agregar combate</button>
-          <button class="small" id="csv">⬇ Descargar resultados (CSV)</button></div>
+          <button class="small" id="csv">⬇ Descargar resultados (Excel)</button></div>
         ${plats.map((n) => {
           const pl = list.filter((b) => b.plataforma === n);
           return `<h3>Plataforma ${n} <span class="muted">(${pl.length})</span></h3>${pl.length ? `<div class="table-scroll"><table class="prog">
@@ -221,19 +221,43 @@ export function torneoView(tid) {
     alert('Programa importado.');
   }
 
-  function exportCsv() {
+  const loadXlsx = async () => {
+    if (!self.XLSX) await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'vendor/xlsx/xlsx.full.min.js'; sc.onload = res; sc.onerror = rej; document.head.appendChild(sc); });
+    return self.XLSX;
+  };
+
+  // Resultados en Excel: hoja "Resultados" (un combate por fila) y "Detalle por juez" (puntaje de cada juez por round).
+  async function exportResults() {
+    const X = await loadXlsx();
     const list = Object.entries(bouts).map(([code, b]) => ({ code, ...D.normBout(b) })).sort((a, b) => a.plataforma - b.plataforma || a.orden - b.orden);
-    const name = (k) => users[k]?.nombre || D.userOf(k);
-    const rows = [csvRow(['Plataforma', 'Orden', 'Código', 'Categoría', 'División/Fase', 'Rojo', 'Club rojo', 'Azul', 'Club azul', 'Ganador', 'Nombre ganador', 'Motivo', 'Rounds rojo', 'Rounds azul', 'R1', 'R2', 'R3', 'Jueces', 'Juez de plataforma', 'Mesa central'])];
-    for (const b of list) {
-      const st = boutStatus(b);
-      const w = b.result?.winner;
-      rows.push(csvRow([b.plataforma, b.orden, b.code, b.cat?.name, b.label, b.rojo?.name, b.rojo?.club, b.azul?.name, b.azul?.club,
-        w ? SIDE_LABEL[w] : '', w && w !== 'empate' ? b[w]?.name : '', b.result?.reason || (b.phase === 'final' ? '' : 'Sin terminar'),
-        st.wins.rojo, st.wins.azul, ...[1, 2, 3].map((n) => (b.rounds[n] ? SIDE_LABEL[b.rounds[n].winner] : '')),
-        Object.entries(b.puestos).map(([n, k]) => `J${n}: ${name(k)}`).join(' | '), b.arbitro ? name(b.arbitro) : '', b.mesa ? name(b.mesa) : '']));
+    const name = (k) => (k ? users[k]?.nombre || D.userOf(k) : '');
+    const fecha = (ms) => (ms ? new Date(ms).toLocaleString('es-CL') : '');
+    const H1 = ['Plataforma', 'Orden', 'Categoría', 'División / Fase', 'Sistema', 'Rojo', 'Club rojo', 'Peso rojo', 'Azul', 'Club azul', 'Peso azul',
+      'Estado', 'Ganador', 'Nombre ganador', 'Motivo', 'Rounds rojo', 'Rounds azul', 'R1', 'R2', 'R3', 'Extra',
+      'Adv. rojo', 'Amon. rojo', 'Conteos rojo', 'Adv. azul', 'Amon. azul', 'Conteos azul',
+      'Juez 1', 'Juez 2', 'Juez 3', 'Juez 4', 'Juez 5', 'Juez de plataforma', 'Mesa central', 'Hora de cierre', 'Código'];
+    const r1 = list.map((b) => {
+      const st = boutStatus(b), w = b.result?.winner, ev = b.events;
+      const extra = Object.keys(b.rounds).map(Number).filter((n) => n > 3).map((n) => SIDE_LABEL[b.rounds[n].winner]).join(', ');
+      return [b.plataforma, b.orden, b.cat?.name, b.label || '', b.system === 'todos' ? 'Todos contra todos' : 'Eliminación',
+        b.rojo?.name, b.rojo?.club, b.rojo?.weight ?? '', b.azul?.name, b.azul?.club, b.azul?.weight ?? '',
+        PHASE_TXT[b.phase] || b.phase, w ? SIDE_LABEL[w] : '', w && w !== 'empate' ? b[w]?.name : '', b.result?.reason || '',
+        st.wins.rojo, st.wins.azul, ...[1, 2, 3].map((n) => (b.rounds[n] ? SIDE_LABEL[b.rounds[n].winner] : '')), extra,
+        warnings(ev, 'rojo'), admonitions(ev, 'rojo'), counts(ev, 'rojo'), warnings(ev, 'azul'), admonitions(ev, 'azul'), counts(ev, 'azul'),
+        ...[1, 2, 3, 4, 5].map((n) => name(b.puestos[n])), name(b.arbitro), name(b.mesa), fecha(b.result?.at), b.code];
+    });
+    const H2 = ['Plataforma', 'Orden', 'Combate', 'Round', 'Ganador del round', 'Motivo', 'Puesto', 'Juez', 'Puntos rojo', 'Puntos azul', 'Voto'];
+    const r2 = [];
+    for (const b of list) for (const n of Object.keys(b.rounds).map(Number).sort((x, y) => x - y)) {
+      const rd = b.rounds[n];
+      for (const v of D.toArr(rd.votes)) r2.push([b.plataforma, b.orden, `${b.rojo?.name} vs ${b.azul?.name}`, n > 3 ? 'Extra' : n,
+        SIDE_LABEL[rd.winner], rd.reason || '', `J${v.judge}`, name(v.u), v.rojo, v.azul, SIDE_LABEL[v.vote]]);
     }
-    downloadFile(`resultados-${(t.nombre || 'torneo').replace(/\W+/g, '_')}.csv`, rows.join('\n'));
+    const sheet = (h, rows) => { const ws = X.utils.aoa_to_sheet([h, ...rows]); ws['!cols'] = h.map((x, i) => ({ wch: Math.min(32, Math.max(8, x.length + 2, ...rows.map((r) => String(r[i] ?? '').length + 1))) })); ws['!autofilter'] = { ref: ws['!ref'] }; return ws; };
+    const wb = X.utils.book_new();
+    X.utils.book_append_sheet(wb, sheet(H1, r1), 'Resultados');
+    X.utils.book_append_sheet(wb, sheet(H2, r2), 'Detalle por juez');
+    X.writeFile(wb, `resultados-${(t.nombre || 'torneo').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\W+/g, '_')}.xlsx`);
   }
 
   onLeave(D.watch(`torneos/${tid}`, (v) => { t = v; render(); }));
@@ -279,7 +303,7 @@ export function torneoView(tid) {
     if (el.dataset.editb) startEdit(el.dataset.editb);
     if (el.id === 'ecancel') { editing = null; draft = null; render(); }
     if (el.id === 'esave') await saveEdit();
-    if (el.id === 'csv') exportCsv();
+    if (el.id === 'csv') await exportResults();
     if (el.id === 'fetchcsv') {
       const url = document.getElementById('csvurl').value.trim(); if (!url) return;
       try { const txt = await (await fetch(url)).text(); preview = parseProgram(txt, { plataformas: t.plataformas }); renderPreview(); }

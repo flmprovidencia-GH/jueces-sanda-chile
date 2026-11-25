@@ -14,7 +14,7 @@ App web para puntuar combates de Wushu Sanda (reglamento IWUF 2024) desde celula
    **juez de plataforma** (no puntúa; queda en el acta).
    El celular del juez cambia solo a los botones ROJO / AZUL y sigue solo al siguiente combate.
 5. El administrador puede editar el nombre de un usuario o eliminarlo (sale de puestos y paneles y pierde el acceso).
-6. Al terminar, queda el **acta** con el puntaje de cada juez y se pueden descargar los resultados en CSV.
+6. Al terminar, queda el **acta** con el puntaje de cada juez y se descargan los resultados en Excel (hojas "Resultados" y "Detalle por juez").
 
 | Pantalla | Enlace | Quién la usa |
 |---|---|---|

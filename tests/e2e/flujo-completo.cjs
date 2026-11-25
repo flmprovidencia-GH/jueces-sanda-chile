@@ -80,8 +80,19 @@ const log = (...a) => console.log('•', ...a);
   await A.screenshot({ path: `${OUT}/acta.png`, fullPage: true });
   log('acta registro:', (await A.locator('.acta .card').first().innerText()).match(/Juez de plataforma:[^\n]*/)?.[0]);
   log('acta:', (await A.locator('.acta .card').nth(1).innerText()).replace(/\s+/g, ' ').slice(0, 200));
+  // Resultados en Excel
+  await A.goto(BASE + `#/torneo/${tid}`); await A.waitForSelector('#csv');
+  const [dlr] = await Promise.all([A.waitForEvent('download'), A.click('#csv')]);
+  const fr = `${OUT}/${dlr.suggestedFilename()}`; await dlr.saveAs(fr);
+  try {
+    const X = require('xlsx'); const wb = X.readFile(fr);
+    const res = X.utils.sheet_to_json(wb.Sheets['Resultados']); const det = X.utils.sheet_to_json(wb.Sheets['Detalle por juez']);
+    const f = res.find((r) => r.Estado === 'Finalizado');
+    log('excel:', dlr.suggestedFilename(), '| hojas:', wb.SheetNames.join(', '), '| filas:', res.length, '| finalizado:', f['Nombre ganador'], f.Motivo, 'J1=' + f['Juez 1'], 'JP=' + f['Juez de plataforma'], 'Adv azul=' + f['Adv. azul']);
+    log('detalle por juez:', det.length, 'filas | ej:', JSON.stringify(det[0]));
+  } catch (e) { log('excel descargado (sin módulo xlsx para leerlo):', dlr.suggestedFilename(), e.message); }
+  await A.goto(BASE + `#/plataforma/${tid}/1`); await A.waitForSelector('text=Siguiente');
   // Siguiente combate: jueces cambian solos
-  await A.goBack(); await A.waitForSelector('text=Siguiente');
   await A.click('[data-load]'); await J[2].waitForFunction(() => document.body.innerText.includes('Matías Pérez'), null, { timeout: 15000 });
   log('jueces pasaron solos al combate #2');
   // Seguridad: Pedro (Juez 1) intenta escribir en el puesto 2 y en otro combate
