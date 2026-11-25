@@ -1,0 +1,65 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><script src="meta.js"></script><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1280px;height:720px;overflow:hidden;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#eef2f6;
+ background:radial-gradient(1200px 700px at 20% 30%,#1d2633 0%,#111418 60%)}
+.stage{position:absolute;inset:0 0 48px 0;display:flex;align-items:center;gap:46px;padding:0 60px}
+.stage.wide{flex-direction:column;justify-content:center;gap:26px;padding:0 60px}
+.shot{position:relative;flex:none;border-radius:14px;overflow:visible;box-shadow:0 0 0 2px #2c3440,0 24px 50px rgba(0,0,0,.55)}
+.shot img{width:100%;height:100%;display:block;border-radius:14px}
+.ring{position:absolute;width:84px;height:84px;margin:-42px 0 0 -42px;border-radius:50%;border:6px solid #fff;
+ box-shadow:0 0 0 8px rgba(255,255,255,.25),0 0 30px rgba(255,255,255,.6);background:rgba(255,255,255,.12)}
+.txt .step{display:inline-block;font-weight:800;font-size:21px;color:#04210f;background:#2fb36c;border-radius:999px;padding:6px 18px;margin-bottom:18px}
+.txt h1{font-size:44px;line-height:1.1;margin-bottom:16px;font-weight:800}
+.txt p{font-size:26px;line-height:1.38;color:#c9d3de;margin-bottom:10px}
+.wide .txt{width:100%;max-width:1100px} .wide .txt h1{font-size:40px} .wide .txt p{font-size:25px}
+.txt b{color:#fff} .r{color:#ff6b7d} .a{color:#6fb0ff}
+.big{display:inline-block;font-size:27px!important;color:#fff!important;background:#232a33;border-left:6px solid #2fb36c;padding:10px 18px;border-radius:10px}
+.bar{position:absolute;left:0;right:0;bottom:0;height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 40px;
+ background:#0b0e12;color:#93a1b1;font-size:19px;border-top:1px solid #232a33}
+.title{position:absolute;inset:0 0 48px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.title .logo{font-size:110px;margin-bottom:10px} .title h1{font-size:66px;font-weight:900;margin-bottom:16px}
+.title h2{font-size:36px;font-weight:600;color:#c9d3de}
+.title .pill{margin-top:34px;font-size:26px;color:#04210f;background:#2fb36c;border-radius:999px;padding:10px 26px;font-weight:800}
+ul.tips{list-style:none;font-size:29px;line-height:1.35} ul.tips li{margin:0 0 15px;padding-left:56px;position:relative;color:#dfe6ee}
+ul.tips li span{position:absolute;left:0;top:-2px;font-size:34px}
+</style></head><body><div id="root"></div><script>
+const S = [
+ {title:true},
+ {img:'01_inicio',step:'Paso 1',h:'Entra a tu mesa',p:['En <b>Inicio</b>, toca <b>Mesa P1</b> (o la plataforma que te toca).','Necesitas un usuario con rol <b>Mesa central</b>.']},
+ {img:'02_arbitro',step:'Paso 2',h:'Juez de plataforma',p:['Elige quién arbitra en la plataforma.','No puntúa: queda <b>registrado en el acta</b>.']},
+ {img:'03_puestos',step:'Paso 3',h:'Asigna a los jueces',p:['Elige Juez 1, 2, 3… y toca <b>Guardar asignación</b>.','<b>Punto verde</b> = el juez está conectado.','<span class="big">Su celular cambia solo.</span>']},
+ {img:'04_panel',step:'Atajo',h:'Cargar un panel',p:['Si el administrador armó <b>paneles</b>, cárgalo completo de una vez.','Útil para la <b>rotación</b> de jueces.']},
+ {img:'05_siguiente',step:'Paso 4',h:'Siguiente combate',p:['El programa muestra el próximo combate.','Toca <b>⏭ Siguiente</b>: se carga en la mesa y en los celulares.']},
+ {img:'06_cargado',step:'Paso 5',h:'Inicia el round',p:['Revisa competidores, categoría y número de jueces. Toca <b>▶ Iniciar round 1</b>: los jueces quedan habilitados para puntuar.']},
+ {img:'07_crono',step:'Cronómetro',h:'Detener y reanudar',p:['<b>⏸ Detener</b> en caídas, salidas o lesiones; <b>▶ Reanudar</b> para seguir.','Al llegar a 0:00 el round <b>termina solo</b>.']},
+ {img:'08_penal',step:'Paso 6',h:'Faltas y acciones',p:['<b>Tú</b> registras amonestación, advertencia, conteo forzado, salida y "no ataca 5 s".','Los puntos van <b>al rival</b> en las tarjetas de todos los jueces.']},
+ {img:'09_acciones',step:'¿Error?',h:'Anular una acción',p:['En <b>Acciones registradas</b>, toca <b>✕ anular</b>.']},
+ {img:'10_vivo',step:'En vivo',h:'Puntajes de cada juez',p:['Ves el <b>total</b> y el <b>voto</b> de cada juez,','y el <b>resultado parcial</b> del round.']},
+ {img:'11_anunciar',step:'Paso 7',h:'Anuncia el round',p:['Al terminar, revisa. Si hubo un error, <b>corrige el ganador</b> antes de anunciar (Art. 16.3.4).','Toca <b>📣 Anunciar</b>.']},
+ {img:'12_descanso',step:'Descanso',h:'Entre rounds',p:['Corre el minuto de descanso.','Toca <b>Preparar round 2</b> y luego <b>Iniciar</b>.']},
+ {img:'13_absoluta',step:'Fin anticipado',h:'Victoria absoluta',p:['<b>KO, superioridad, lesión o descalificación</b> terminan el combate de inmediato.']},
+ {img:'14_cerrar',step:'Paso 8',h:'Cierra el combate',p:['La app calcula el ganador <b>según el reglamento</b> (2 rounds, desempates, 3 advertencias…). Toca <b>Confirmar y cerrar combate</b>.']},
+ {img:'15_final',step:'Listo',h:'Resultado guardado',p:['Queda el resultado final y el enlace al <b>acta</b>. Luego vuelve a <b>⏭ Siguiente</b>.']},
+ {img:'16_acta',step:'Acta',h:'Acta del combate',p:['Puntaje de cada juez por round, acciones de mesa y firmas. Se imprime o guarda en <b>PDF</b>.']},
+ {img:'17_ausencia',step:'Ausencia',h:'No se presentó',p:['Si un competidor no llega, toca <b>Ausencia</b> en el programa e indica quién faltó.']},
+ {tips:true},
+];
+const i = Number(location.hash.slice(1) || 0), s = S[i], root = document.getElementById('root');
+const bar = `<div class="bar"><span>🥋 Jueces Sanda Chile</span><span>Guía rápida · Mesa central</span></div>`;
+if (s.title) root.innerHTML = `<div class="title"><div class="logo">🖥️</div><h1>Mesa central</h1><h2>Cómo dirigir un combate paso a paso</h2><div class="pill">Guía rápida</div></div>${bar}`;
+else if (s.tips) root.innerHTML = `<div class="stage" style="padding:0 120px"><div class="txt"><span class="step">Consejos</span><h1>Para una mesa sin problemas</h1><ul class="tips">
+ <li><span>🔌</span>Computador o tablet <b>con cargador</b> y buena conexión.</li>
+ <li><span>🟢</span>Antes de iniciar, revisa que los jueces tengan <b>punto verde</b>.</li>
+ <li><span>🗂️</span>No cierres la pestaña: <b>una mesa por plataforma</b>.</li>
+ <li><span>📺</span>Abre la <b>Pantalla pública</b> en el TV o proyector.</li>
+ <li><span>💻</span>Si se cae el equipo, entra desde otro: el combate <b>sigue donde estaba</b>.</li></ul></div></div>${bar}`;
+else {
+  const m = META[s.img], ar = m.w / m.h, wide = ar > 1.75;
+  let W, H;
+  if (wide) { W = Math.min(1160, 410 * ar); H = W / ar; if (H > 410) { H = 410; W = H * ar; } }
+  else { H = Math.min(560, 640 / ar); W = H * ar; if (W > 640) { W = 640; H = W / ar; } }
+  root.innerHTML = `<div class="stage ${wide ? 'wide' : ''}"><div class="shot" style="width:${W}px;height:${H}px"><img src="shots/${s.img}.png">
+    ${m.ring ? `<div class="ring" style="left:${m.ring[0]}%;top:${m.ring[1]}%"></div>` : ''}</div>
+    <div class="txt"><span class="step">${s.step}</span><h1>${s.h}</h1>${s.p.map((x) => `<p>${x}</p>`).join('')}</div></div>${bar}`;
+}
+</script></body></html>

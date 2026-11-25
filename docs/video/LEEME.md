@@ -9,3 +9,9 @@ Para regenerarlo si cambia la app:
    y ejecutar `render.cjs` para obtener `frames/s00.png … s14.png`.
 3. Unir con ffmpeg (fundidos de 0,35 s; duraciones por escena en el script de armado del historial de cambios):
    `ffmpeg -loop 1 -t … -i frames/s00.png … -filter_complex "…xfade…" -c:v libx264 -crf 20 guia-jueces-de-linea.mp4`
+
+# Video "Guía rápida · Mesa central" (~1:35)
+
+Resultado: `docs/guia-mesa-central.mp4` (1920×1080, 95 s, sin audio). Fuentes en `docs/video/mesa/`:
+`capture.cjs` (captura recortes reales y la posición del botón a resaltar → `meta.js`), `slides.html` (19 escenas)
+y `render.cjs` (servir la carpeta en el puerto 8778). Se une con ffmpeg igual que el video de jueces de línea.
