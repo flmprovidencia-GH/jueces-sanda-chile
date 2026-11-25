@@ -120,3 +120,12 @@ td.actions > * { margin: 2px; }
 .editor { border-color: var(--ok); }
 .arbitro { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
 .arbitro select { max-width: 320px; }
+.results h1 { font-size: 1.6rem; }
+.res-group h2 { font-size: 1.1rem; margin-bottom: 6px; }
+.res-group td, .res-group th { font-size: .95rem; }
+@media print {
+  body { font-size: 12px; }
+  .results .card { padding: 6px 0; border: 0; border-bottom: 1px solid #999; border-radius: 0; margin-bottom: 8px; }
+  .results h1 { font-size: 18px; } .res-group h2 { font-size: 14px; }
+  .results .muted { color: #444; }
+}

@@ -1,7 +1,7 @@
 // Pantalla pública por plataforma (sin usuario) y acta imprimible de un combate.
 import * as D from './data.js';
 import { boutStatus, warnings, admonitions, counts, EVENT_TYPES, SIDES } from './logic.js';
-import { $app, esc, fmt, remaining, onLeave, fighter, topbar, winnerTag, SIDE_LABEL } from './ui.js';
+import { $app, esc, fmt, remaining, onLeave, fighter, topbar, winnerTag, SIDE_LABEL, href } from './ui.js';
 
 export function screenView(tid, p) {
   let bout = null, offB = null, code = null;
@@ -69,4 +69,55 @@ export function actaView(code) {
   }));
   onLeave(D.watch(`jueces/${code}`, (v) => { judges = D.toObj(v); render(); }));
   onLeave(D.watch('usuarios', (v) => { users = v || {}; render(); }));
+}
+
+// Resultados para premiación: resumen simple por categoría y división, en vivo e imprimible (sin usuario).
+export function resultsView(tid) {
+  let t = null, bouts = {}, onlyFinals = false;
+  const ORDER = { infantil: 1, juvenil: 2, light: 3, oficial: 4, superlucha: 5 };
+  const short = (b) => {
+    const r = b.result?.reason || '';
+    if (/Ausencia/i.test(r)) return 'No presentación';
+    if (/Descalificaci/i.test(r)) return 'Descalificación';
+    if (/KO/i.test(r)) return 'KO';
+    if (/Superioridad/i.test(r)) return 'Superioridad';
+    if (/12 puntos/i.test(r)) return 'Dif. 12 puntos';
+    if (/conteos/i.test(r)) return '3 conteos';
+    if (/Lesi/i.test(r)) return 'Lesión / abandono';
+    const st = boutStatus(b); const w = b.result?.winner;
+    return w === 'empate' ? `Empate ${st.wins.rojo}-${st.wins.azul}` : `${st.wins[w]}-${st.wins[w === 'rojo' ? 'azul' : 'rojo']} en rounds`;
+  };
+  const who = (s) => `<b>${esc(s?.name || '')}</b>${s?.club ? ` <span class="muted">(${esc(s.club)})</span>` : ''}`;
+  function render() {
+    const all = Object.entries(bouts).map(([code, b]) => ({ code, ...D.normBout(b) }));
+    const fin = all.filter((b) => b.phase === 'final' && b.result?.winner).filter((b) => !onlyFinals || /final/i.test(b.label || '') && !/semi|cuarto|octavo/i.test(b.label || ''));
+    const groups = {};
+    for (const b of fin) {
+      const div = String(b.label || '').split(' · ')[0] || 'Sin división';
+      const k = `${ORDER[b.cat?.key] || 9}|${b.cat?.name}|${div}`;
+      (groups[k] ||= []).push(b);
+    }
+    const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+    const pend = all.filter((b) => b.phase !== 'final').length;
+    $app.innerHTML = `<div class="wrap results">
+      <div class="noprint row" style="margin-bottom:12px"><a href="${href('/')}">🥋 Inicio</a><span class="grow"></span>
+        <label class="check"><input type="checkbox" id="onlyf" ${onlyFinals ? 'checked' : ''}> Solo finales</label>
+        <button class="primary" onclick="print()">🖨 Imprimir / PDF</button></div>
+      <h1>🏆 ${esc(t?.nombre || 'Resultados')}</h1>
+      <p class="muted">${t?.fecha ? esc(t.fecha) + ' · ' : ''}Resultados al ${new Date().toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
+        · ${fin.length} combates terminados${pend ? ` · ${pend} pendientes` : ''}</p>
+      ${keys.length ? keys.map((k) => { const [, cat, div] = k.split('|'); const list = groups[k].sort((a, b) => a.plataforma - b.plataforma || a.orden - b.orden);
+        return `<div class="card res-group"><h2>${esc(cat)} · ${esc(div)}</h2><table>
+          <tr><th style="width:18%">Fase</th><th style="text-align:left">Ganador</th><th style="text-align:left">Perdedor</th><th style="width:18%">Resultado</th></tr>
+          ${list.map((b) => { const w = b.result.winner, l = w === 'rojo' ? 'azul' : 'rojo';
+            const fase = String(b.label || '').split(' · ')[1] || `Combate #${b.orden}`;
+            return w === 'empate'
+              ? `<tr><td>${esc(fase)}</td><td style="text-align:left">${who(b.rojo)}</td><td style="text-align:left">${who(b.azul)}</td><td>${esc(short(b))}</td></tr>`
+              : `<tr><td>${esc(fase)}</td><td style="text-align:left">🥇 ${who(b[w])}</td><td style="text-align:left">${who(b[l])}</td><td>${esc(short(b))}</td></tr>`; }).join('')}
+        </table></div>`; }).join('') : '<div class="card"><p class="muted">Aún no hay combates terminados.</p></div>'}
+    </div>`;
+    const cb = document.getElementById('onlyf'); if (cb) cb.onchange = () => { onlyFinals = cb.checked; render(); };
+  }
+  onLeave(D.watch(`torneos/${tid}`, (v) => { t = v; render(); }));
+  onLeave(D.watchEq('combates', 'torneo', tid, (v) => { bouts = v; render(); }));
 }

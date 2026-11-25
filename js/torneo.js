@@ -34,6 +34,7 @@ export function torneoView(tid) {
         <div class="row" style="margin-top:12px">
           ${plats.map((n) => `<a href="${href(`/plataforma/${tid}/${n}`)}"><button type="button">🖥 Mesa plataforma ${n}</button></a>
             <a href="${href(`/pantalla/${tid}/${n}`)}" target="_blank"><button type="button" class="small">📺 Pantalla ${n}</button></a>`).join('')}
+          <a href="${href(`/resultados/${tid}`)}" target="_blank"><button type="button">🏆 Resultados para premiación</button></a>
         </div></form>
 
       <div class="card"><h2>Paneles de jueces</h2>

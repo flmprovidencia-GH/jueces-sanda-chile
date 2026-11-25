@@ -3,7 +3,7 @@ import { $app, esc, href, topbar, resetView, onLeave } from './ui.js';
 import { torneoView } from './torneo.js';
 import { plataformaView } from './plataforma.js';
 import { judgeView } from './juez.js';
-import { screenView, actaView } from './pantalla.js';
+import { screenView, actaView, resultsView } from './pantalla.js';
 
 let lastKey;
 D.onProfile((p) => {
@@ -16,6 +16,7 @@ function route() {
   resetView();
   const [, view, a, b] = location.hash.replace(/^#/, '').split('/');
   if (view === 'pantalla' && a) return screenView(a, Number(b || 1)); // pública, sin usuario
+  if (view === 'resultados' && a) return resultsView(a); // pública, para la mesa de premiación
   if (!D.authReady) { $app.innerHTML = '<p class="muted center pad">Cargando…</p>'; return; }
   const p = D.currentProfile();
   if (!p) return loginView();
@@ -124,6 +125,7 @@ function homeView() {
         <div class="row">
           ${Array.from({ length: x.plataformas || 1 }, (_, i) => i + 1).map((n) =>
             `<a href="${href(`/plataforma/${id}/${n}`)}"><button class="small">Mesa P${n}</button></a>`).join('')}
+          <a href="${href(`/resultados/${id}`)}"><button class="small">🏆 Resultados</button></a>
           ${r.admin ? `<a href="${href(`/torneo/${id}`)}"><button class="small primary">Administrar</button></a>` : ''}
         </div>
       </div>`).join('') : 'Aún no hay torneos.';
